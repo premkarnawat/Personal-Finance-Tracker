@@ -23,9 +23,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
+      // Skip redirect for /auth/me — it's the initial session check in AuthContext.
+      // Redirecting here causes a full page reload loop → white screen.
+      const isAuthCheck = error.config?.url?.includes('/auth/me')
+      if (!isAuthCheck) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
