@@ -23,8 +23,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Skip redirect for /auth/me — it's the initial session check in AuthContext.
-      // Redirecting here causes a full page reload loop → white screen.
+      // FIX: Skip the redirect for /auth/me — it's the initial session check in AuthContext.
+      // Without this guard, a 401 from /auth/me triggers window.location.href which causes a
+      // full page reload before React can handle it gracefully → white screen / reload loop.
       const isAuthCheck = error.config?.url?.includes('/auth/me')
       if (!isAuthCheck) {
         localStorage.removeItem('token')
