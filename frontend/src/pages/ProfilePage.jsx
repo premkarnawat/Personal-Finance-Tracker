@@ -1,153 +1,280 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
+import { useUPISync, SUPPORTED_BANKS } from '../hooks/useUPISync'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
+function Section({ title, children }) {
+  return (
+    <div className="card dark:bg-gray-900 dark:border-gray-800 mb-5">
+      <h2 className="text-sm font-semibold text-ink-tertiary dark:text-gray-400 uppercase tracking-wider mb-4">{title}</h2>
+      {children}
+    </div>
+  )
+}
+
+function SettingRow({ icon, label, description, children }) {
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-surface-2 dark:border-gray-800 last:border-0">
+      <div className="flex items-center gap-3">
+        <span className="text-xl">{icon}</span>
+        <div>
+          <p className="text-sm font-medium text-ink-primary dark:text-white">{label}</p>
+          {description && <p className="text-xs text-ink-tertiary dark:text-gray-500 mt-0.5">{description}</p>}
+        </div>
+      </div>
+      <div className="flex-shrink-0">{children}</div>
+    </div>
+  )
+}
+
+function ThemeToggle() {
+  const { isDark, toggleTheme } = useTheme()
+  return (
+    <button
+      onClick={toggleTheme}
+      className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${isDark ? 'bg-sky-500' : 'bg-surface-3'}`}
+    >
+      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-300 flex items-center justify-center text-[11px] ${isDark ? 'translate-x-6' : ''}`}>
+        {isDark ? '🌙' : '☀️'}
+      </span>
+    </button>
+  )
+}
+
 export default function ProfilePage() {
   const { user, logout } = useAuth()
-  const { theme, toggle, isDark } = useTheme()
   const navigate = useNavigate()
+  const { connectionStatus, connectBank, disconnectBank, syncing, lastSynced, syncBankTransactions } = useUPISync()
+  const [smsInput, setSmsInput] = useState('')
+  const { processSMS } = useUPISync()
+  const [smsLoading, setSmsLoading] = useState(false)
+
+  const initials = user?.name
+    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : user?.email?.slice(0, 2).toUpperCase() || '??'
+  const displayName = user?.name || user?.email?.split('@')[0] || 'User'
 
   const handleLogout = () => {
     logout()
-    toast.success('Logged out successfully')
+    toast.success('Logged out')
     navigate('/login')
   }
 
-  const username = user?.email?.split('@')[0] || 'User'
-  const initials = username.charAt(0).toUpperCase()
-  const joined = user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : 'Recently'
+  const handleConnect = async (bank) => {
+    const result = await connectBank(bank.id)
+    if (result.success) {
+      toast.success(`${bank.name} connected!`)
+    } else {
+      toast.error(result.message || 'Connection failed')
+    }
+  }
 
-  const menuItems = [
-    {
-      section: 'Preferences',
-      items: [
-        {
-          label: 'Theme',
-          desc: isDark ? 'Dark mode' : 'Light mode',
-          icon: isDark ? (
-            <svg className="w-5 h-5 text-[#f5c842]" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5 text-brand-400" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-            </svg>
-          ),
-          action: toggle,
-          trailing: (
-            <div className={`w-11 h-6 rounded-full transition-colors duration-200 relative ${isDark ? 'bg-brand-600' : 'bg-surface-3'}`}>
-              <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all duration-200 ${isDark ? 'left-6' : 'left-1'}`} />
-            </div>
-          ),
-        },
-      ],
-    },
-    {
-      section: 'Account',
-      items: [
-        {
-          label: 'Financial Goals',
-          desc: 'Set and track your goals',
-          icon: <svg className="w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>,
-          action: () => navigate('/goals'),
-        },
-        {
-          label: 'Loan Manager',
-          desc: 'Track loans and EMIs',
-          icon: <svg className="w-5 h-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>,
-          action: () => navigate('/loans'),
-        },
-      ],
-    },
-    {
-      section: 'Danger Zone',
-      items: [
-        {
-          label: 'Log Out',
-          desc: 'Sign out of your account',
-          icon: <svg className="w-5 h-5 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>,
-          action: handleLogout,
-          danger: true,
-        },
-      ],
-    },
-  ]
+  const handleDisconnect = async (bank) => {
+    await disconnectBank(bank.id)
+    toast.success(`${bank.name} disconnected`)
+  }
+
+  const handleSync = async (bankId) => {
+    const result = await syncBankTransactions(bankId)
+    if (result.success) {
+      toast.success(`Synced ${result.count} new transactions`)
+    } else {
+      toast.error(result.message)
+    }
+  }
+
+  const handleSMSImport = async () => {
+    if (!smsInput.trim()) return
+    setSmsLoading(true)
+    const result = await processSMS(smsInput.trim())
+    setSmsLoading(false)
+    if (result.success) {
+      toast.success(`Transaction imported: ₹${result.transaction?.amount} — ${result.transaction?.description}`)
+      setSmsInput('')
+    } else {
+      toast.error(result.reason || 'Could not parse this SMS')
+    }
+  }
 
   return (
-    <div className="max-w-lg mx-auto">
-      {/* Profile card */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card mb-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-400 to-violet-500 flex items-center justify-center text-white text-2xl font-black flex-shrink-0">
-            {initials}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-black capitalize truncate" style={{ color: 'var(--text-primary)' }}>{username}</h2>
-            <p className="text-sm truncate" style={{ color: 'var(--text-tertiary)' }}>{user?.email}</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Member since {joined}</p>
-          </div>
-        </div>
-
-        {/* UPI Notice */}
-        <div className="mt-5 rounded-xl p-4" style={{ background: 'var(--bg-card2)', border: '1px solid var(--border)' }}>
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#d4a843]/20 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-[#d4a843]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-xs font-bold mb-0.5" style={{ color: 'var(--text-primary)' }}>UPI / Bank Auto-sync</p>
-              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
-                Automatic UPI & bank integration requires RBI-approved account aggregator access. This feature is on the roadmap. For now, add transactions manually.
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="max-w-2xl mx-auto">
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <h1 className="page-header dark:text-white">Profile & Settings</h1>
+        <p className="text-ink-tertiary dark:text-gray-400 text-sm mt-1">Manage your account, integrations and preferences</p>
       </motion.div>
 
-      {/* Menu sections */}
-      {menuItems.map((section, si) => (
-        <motion.div key={section.section}
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: (si + 1) * 0.08 }}
-          className="mb-4"
-        >
-          <p className="section-label px-1 mb-2">{section.section}</p>
-          <div className="card p-2 space-y-1">
-            {section.items.map((item) => (
-              <button key={item.label} onClick={item.action}
-                className="w-full flex items-center gap-3 px-3 py-3.5 rounded-xl transition-all text-left"
-                style={{ ':hover': { background: 'var(--bg-card2)' } }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-card2)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-              >
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'var(--bg-card2)' }}>
-                  {item.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: item.danger ? '#ef4444' : 'var(--text-primary)' }}>
-                    {item.label}
-                  </p>
-                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{item.desc}</p>
-                </div>
-                {item.trailing || (
-                  <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                )}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-      ))}
+      {/* User card */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+        className="card dark:bg-gray-900 dark:border-gray-800 mb-5 flex items-center gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+          {initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-ink-primary dark:text-white capitalize text-lg leading-tight">{displayName}</p>
+          <p className="text-sm text-ink-tertiary dark:text-gray-400">{user?.email}</p>
+        </div>
+        <span className="badge bg-success/10 text-success text-xs">Active</span>
+      </motion.div>
 
-      <p className="text-center text-xs mt-6" style={{ color: 'var(--text-tertiary)' }}>
-        FINTRA v2.0 · Made with ♥
-      </p>
+      {/* Appearance */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        <Section title="Appearance">
+          <SettingRow icon="🌗" label="Dark Mode" description="Switch between light and dark theme">
+            <ThemeToggle />
+          </SettingRow>
+        </Section>
+      </motion.div>
+
+      {/* Bank & UPI Connections */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+        <Section title="🏦 Bank & UPI Connections">
+          <p className="text-xs text-ink-tertiary dark:text-gray-500 mb-4 leading-relaxed">
+            Connect your bank or UPI app to auto-import and categorize transactions. Uses RBI-compliant Account Aggregator framework.
+          </p>
+
+          {/* UPI Apps */}
+          <p className="text-xs font-semibold text-ink-tertiary dark:text-gray-500 uppercase tracking-wide mb-2">UPI Apps</p>
+          <div className="space-y-2 mb-5">
+            {SUPPORTED_BANKS.filter(b => b.type === 'upi').map(bank => {
+              const connected = connectionStatus[bank.id]?.connected
+              return (
+                <div key={bank.id} className="flex items-center justify-between p-3 rounded-xl bg-surface-1 dark:bg-gray-800 border border-surface-3 dark:border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{bank.icon}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-ink-primary dark:text-white">{bank.name}</p>
+                      <p className="text-xs text-ink-tertiary dark:text-gray-500">{bank.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {connected && (
+                      <button
+                        onClick={() => handleSync(bank.id)}
+                        disabled={syncing}
+                        className="text-xs px-2 py-1 rounded-lg bg-brand-50 dark:bg-sky-900/30 text-brand-600 dark:text-sky-400 font-medium hover:bg-brand-100 transition-colors"
+                      >
+                        {syncing ? '...' : 'Sync'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => connected ? handleDisconnect(bank) : handleConnect(bank)}
+                      className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                        connected
+                          ? 'bg-danger/10 text-danger hover:bg-danger/20'
+                          : 'bg-brand-600 text-white hover:bg-brand-700'
+                      }`}
+                    >
+                      {connected ? 'Disconnect' : 'Connect'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Banks */}
+          <p className="text-xs font-semibold text-ink-tertiary dark:text-gray-500 uppercase tracking-wide mb-2">Bank Accounts</p>
+          <div className="space-y-2">
+            {SUPPORTED_BANKS.filter(b => b.type === 'bank').map(bank => {
+              const connected = connectionStatus[bank.id]?.connected
+              return (
+                <div key={bank.id} className="flex items-center justify-between p-3 rounded-xl bg-surface-1 dark:bg-gray-800 border border-surface-3 dark:border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{bank.icon}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-ink-primary dark:text-white">{bank.name}</p>
+                      <p className="text-xs text-ink-tertiary dark:text-gray-500">{bank.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {connected && (
+                      <button onClick={() => handleSync(bank.id)} disabled={syncing}
+                        className="text-xs px-2 py-1 rounded-lg bg-brand-50 dark:bg-sky-900/30 text-brand-600 dark:text-sky-400 font-medium hover:bg-brand-100 transition-colors">
+                        {syncing ? '...' : 'Sync'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => connected ? handleDisconnect(bank) : handleConnect(bank)}
+                      className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${connected ? 'bg-danger/10 text-danger hover:bg-danger/20' : 'bg-brand-600 text-white hover:bg-brand-700'}`}
+                    >
+                      {connected ? 'Disconnect' : 'Connect'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {lastSynced && (
+            <p className="text-xs text-ink-tertiary dark:text-gray-500 mt-3 text-right">
+              Last synced: {lastSynced.toLocaleString('en-IN')}
+            </p>
+          )}
+        </Section>
+      </motion.div>
+
+      {/* SMS Import */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+        <Section title="📱 SMS Transaction Import">
+          <p className="text-xs text-ink-tertiary dark:text-gray-500 mb-3 leading-relaxed">
+            Paste a bank SMS to instantly parse and import it as a transaction. Works with all major Indian banks.
+          </p>
+          <textarea
+            value={smsInput}
+            onChange={e => setSmsInput(e.target.value)}
+            placeholder={'Paste bank SMS here...\nExample: "Your SBI A/c XXXX is debited by Rs.450.00 on 25-Apr at SWIGGY UPI ref 123456789012"'}
+            className="input-field dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-500 h-24 resize-none font-mono text-xs"
+          />
+          <button
+            onClick={handleSMSImport}
+            disabled={smsLoading || !smsInput.trim()}
+            className="btn-primary mt-2 w-full disabled:opacity-50"
+          >
+            {smsLoading ? 'Parsing...' : '⚡ Import Transaction from SMS'}
+          </button>
+        </Section>
+      </motion.div>
+
+      {/* Account Settings */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+        <Section title="Account">
+          <SettingRow icon="🔔" label="Notifications" description="Budget alerts and weekly summaries">
+            <span className="text-xs text-ink-tertiary dark:text-gray-500 bg-surface-2 dark:bg-gray-800 px-2 py-1 rounded-lg">Coming soon</span>
+          </SettingRow>
+          <SettingRow icon="📤" label="Export Data" description="Download your transactions as CSV">
+            <button
+              onClick={() => toast('Export feature — connect your backend /export endpoint', { icon: 'ℹ️' })}
+              className="text-xs px-3 py-1.5 rounded-lg bg-surface-2 dark:bg-gray-800 text-ink-secondary dark:text-gray-400 font-medium hover:bg-surface-3 dark:hover:bg-gray-700 transition-colors"
+            >
+              Export CSV
+            </button>
+          </SettingRow>
+          <SettingRow icon="🔐" label="Change Password" description="Update your account password">
+            <button className="text-xs px-3 py-1.5 rounded-lg bg-surface-2 dark:bg-gray-800 text-ink-secondary dark:text-gray-400 font-medium hover:bg-surface-3 dark:hover:bg-gray-700 transition-colors">
+              Update
+            </button>
+          </SettingRow>
+        </Section>
+      </motion.div>
+
+      {/* Danger zone */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+        <div className="card dark:bg-gray-900 dark:border-gray-800 border-danger/20">
+          <h2 className="text-sm font-semibold text-danger uppercase tracking-wider mb-4">Danger Zone</h2>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-danger/10 text-danger font-semibold text-sm hover:bg-danger/20 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Log Out
+          </button>
+        </div>
+      </motion.div>
     </div>
   )
 }
