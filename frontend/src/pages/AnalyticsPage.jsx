@@ -1,274 +1,232 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import {
-  PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Area, AreaChart,
-} from 'recharts'
 import { useAnalytics } from '../hooks/useData'
 import { formatCurrency, formatMonth, CATEGORY_COLORS } from '../utils/format'
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+} from 'recharts'
 
-const RADIAN = Math.PI / 180
-const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-  if (percent < 0.05) return null
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5
-  const x = cx + radius * Math.cos(-midAngle * RADIAN)
-  const y = cy + radius * Math.sin(-midAngle * RADIAN)
-  return (
-    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight={600}>
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  )
-}
+const DONUT_COLORS = ['#7c3aed', '#f97316', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#a855f7']
 
-function CustomTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null
+const stagger = (i) => ({
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+  transition: { delay: i * 0.07, duration: 0.3 },
+})
+
+function CategoryBudgetCard({ name, amount, total, color, emoji }) {
+  const pct = total > 0 ? Math.min(100, Math.round((amount / total) * 100)) : 0
+  const budget = amount * 1.4 // simulated budget = 140% of spend
+  const left = budget - amount
+  const leftPct = Math.round((left / budget) * 100)
+
   return (
-    <div className="bg-white border border-surface-3 rounded-xl shadow-elevated p-3 min-w-[160px]">
-      <p className="text-xs font-semibold text-ink-secondary mb-2">{formatMonth(label)}</p>
-      {payload.map((p) => (
-        <div key={p.dataKey} className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-            <span className="text-xs text-ink-secondary capitalize">{p.dataKey}</span>
-          </div>
-          <span className="text-xs font-bold text-ink-primary tabular-nums">{formatCurrency(p.value)}</span>
+    <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{emoji}</span>
+          <p className="text-sm font-semibold text-gray-800">{name}</p>
         </div>
-      ))}
+      </div>
+      <p className="text-xs text-gray-400 mb-1">{formatCurrency(left)} Left</p>
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${leftPct}%`, background: color }}
+        />
+      </div>
+      <p className="text-[10px] text-gray-400 mt-1 text-right">{leftPct}%</p>
     </div>
   )
 }
 
 export default function AnalyticsPage() {
-  const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' })
-  const { data, loading } = useAnalytics(dateRange)
+  const [tab, setTab] = useState('expense')
+  const [period, setPeriod] = useState('week')
+  const { data: analytics, loading } = useAnalytics()
 
-  const summary = data?.summary || {}
+  const categoryData = analytics?.spendingByCategory || []
+  const monthlyData = analytics?.monthlyData || []
+  const totalExpenses = analytics?.summary?.totalExpenses || 0
+  const totalIncome = analytics?.summary?.totalIncome || 0
 
-  const summaryCards = [
-    { label: 'Total Income', value: summary.totalIncome || 0, color: 'text-success', bg: 'bg-success/10' },
-    { label: 'Total Expenses', value: summary.totalExpenses || 0, color: 'text-danger', bg: 'bg-danger/10' },
-    { label: 'Net Savings', value: summary.netSavings || 0, color: summary.netSavings >= 0 ? 'text-brand-600' : 'text-danger', bg: 'bg-brand-50' },
-    { label: 'Savings Rate', value: null, rate: summary.savingsRate || 0, color: (summary.savingsRate || 0) >= 0 ? 'text-brand-600' : 'text-danger', bg: 'bg-brand-50' },
-  ]
+  const displayTotal = tab === 'expense' ? totalExpenses : totalIncome
+
+  // Bar data for weekly simulation from monthly
+  const barData = monthlyData.slice(-7).map(m => ({
+    label: m.month,
+    value: tab === 'expense' ? m.expense : m.income,
+  }))
+
+  const getCategoryEmoji = (cat) => {
+    const map = {
+      'Food & Dining': '🍔', 'Transportation': '🚗', 'Housing & Rent': '🏠',
+      'Healthcare': '💊', 'Entertainment': '🎬', 'Shopping': '🛍️',
+      'Education': '📚', 'Travel': '✈️', 'Utilities': '⚡',
+      'Savings': '💰', 'Salary': '💼', 'Freelance': '💻',
+      'Investment': '📈', 'Other': '📦',
+    }
+    return map[cat] || '💳'
+  }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-lg mx-auto lg:max-w-4xl">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="page-header">Analytics</h1>
-          <p className="text-sm text-ink-tertiary mt-0.5">Insights into your financial health</p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <div>
-            <input
-              type="date"
-              value={dateRange.startDate}
-              onChange={(e) => setDateRange((p) => ({ ...p, startDate: e.target.value }))}
-              className="input-field text-sm"
-              placeholder="From"
-            />
-          </div>
-          <div>
-            <input
-              type="date"
-              value={dateRange.endDate}
-              onChange={(e) => setDateRange((p) => ({ ...p, endDate: e.target.value }))}
-              className="input-field text-sm"
-            />
-          </div>
-          {(dateRange.startDate || dateRange.endDate) && (
-            <button
-              onClick={() => setDateRange({ startDate: '', endDate: '' })}
-              className="btn-secondary text-sm"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </div>
+      <motion.div {...stagger(0)} className="flex items-center justify-between mb-5">
+        <h1 className="text-xl font-bold text-gray-900">Statistics</h1>
+        <button className="w-9 h-9 rounded-full bg-amber-400 flex items-center justify-center shadow-md">
+          <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+        </button>
+      </motion.div>
 
-      {/* Summary stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {summaryCards.map((card, i) => (
-          <motion.div
-            key={card.label}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.07 }}
-            className="stat-card"
+      {/* Tab Toggle — exact match to design */}
+      <motion.div {...stagger(1)} className="flex bg-gray-100 rounded-2xl p-1 mb-5">
+        {['expense', 'income'].map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 capitalize ${
+              tab === t
+                ? 'bg-[#2d1b69] text-white shadow-md'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
           >
-            <p className="text-xs font-semibold text-ink-tertiary uppercase tracking-wide mb-3">{card.label}</p>
-            {loading ? (
-              <div className="skeleton h-8 w-24 rounded" />
-            ) : card.value !== null ? (
-              <p className={`text-xl font-bold tabular-nums ${card.color}`}>{formatCurrency(card.value)}</p>
-            ) : (
-              <p className={`text-xl font-bold tabular-nums ${card.color}`}>{card.rate?.toFixed(1)}%</p>
-            )}
-          </motion.div>
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
         ))}
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Pie chart - spending by category */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="card"
-        >
-          <p className="section-label mb-6">Spending by Category</p>
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : !data?.spendingByCategory?.length ? (
-            <div className="flex items-center justify-center h-64 text-ink-tertiary text-sm">
-              No expense data available
-            </div>
-          ) : (
-            <>
-              <ResponsiveContainer width="100%" height={240}>
-                <PieChart>
-                  <Pie
-                    data={data.spendingByCategory}
-                    dataKey="amount"
-                    nameKey="category"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    innerRadius={50}
-                    labelLine={false}
-                    label={renderCustomLabel}
-                    animationBegin={0}
-                    animationDuration={800}
-                  >
-                    {data.spendingByCategory.map((entry) => (
-                      <Cell
-                        key={entry.category}
-                        fill={CATEGORY_COLORS[entry.category] || '#94a3b8'}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v) => formatCurrency(v)} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="mt-4 space-y-2">
-                {data.spendingByCategory.slice(0, 6).map((entry) => {
-                  const total = data.spendingByCategory.reduce((s, e) => s + e.amount, 0)
-                  return (
-                    <div key={entry.category} className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORY_COLORS[entry.category] || '#94a3b8' }} />
-                      <span className="text-xs text-ink-secondary flex-1 truncate">{entry.category}</span>
-                      <span className="text-xs text-ink-tertiary">{((entry.amount / total) * 100).toFixed(1)}%</span>
-                      <span className="text-xs font-semibold text-ink-primary tabular-nums">{formatCurrency(entry.amount)}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </>
-          )}
-        </motion.div>
+      {/* Total + Donut */}
+      <motion.div {...stagger(2)} className="bg-white rounded-3xl p-5 mb-5 shadow-sm border border-gray-100">
+        <div className="text-center mb-2">
+          <p className="text-xs text-gray-400 mb-1">Total {tab === 'expense' ? 'Expenses' : 'Income'}</p>
+          <p className="text-3xl font-bold text-gray-900 tabular-nums">{formatCurrency(displayTotal)}</p>
+        </div>
 
-        {/* Savings rate */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="card"
-        >
-          <p className="section-label mb-6">Savings Rate Gauge</p>
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="skeleton w-48 h-48 rounded-full" />
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-56 gap-6">
-              <div className="relative w-48 h-48">
-                <svg className="w-48 h-48 -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="#e2e8f0" strokeWidth="12" />
-                  <circle
-                    cx="50" cy="50" r="42" fill="none"
-                    stroke={(summary.savingsRate || 0) >= 0 ? '#0ea5e9' : '#ef4444'}
-                    strokeWidth="12"
-                    strokeLinecap="round"
-                    strokeDasharray={`${Math.abs(Math.min(summary.savingsRate || 0, 100)) * 2.639} 263.9`}
-                    className="transition-all duration-1000"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={`text-3xl font-bold tabular-nums ${(summary.savingsRate || 0) >= 0 ? 'text-brand-600' : 'text-danger'}`}>
-                    {(summary.savingsRate || 0).toFixed(1)}%
-                  </span>
-                  <span className="text-xs text-ink-tertiary mt-1">Savings Rate</span>
-                </div>
-              </div>
-              <div className="text-center">
-                <p className={`text-sm font-semibold ${(summary.savingsRate || 0) >= 20 ? 'text-success' : (summary.savingsRate || 0) >= 10 ? 'text-warning' : 'text-danger'}`}>
-                  {(summary.savingsRate || 0) >= 20 ? '🟢 Excellent' : (summary.savingsRate || 0) >= 10 ? '🟡 Good' : '🔴 Needs attention'}
-                </p>
-                <p className="text-xs text-ink-tertiary mt-1">Aim for 20%+ savings rate</p>
-              </div>
-            </div>
-          )}
-        </motion.div>
-      </div>
-
-      {/* Monthly income vs expenses */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="card"
-      >
-        <p className="section-label mb-6">Monthly Income vs Expenses</p>
         {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+          <div className="flex justify-center py-8">
+            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : !data?.monthlyData?.length ? (
-          <div className="flex items-center justify-center h-64 text-ink-tertiary text-sm">
-            No monthly data available
-          </div>
+        ) : categoryData.length > 0 ? (
+          <>
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%" cy="50%"
+                  innerRadius={60} outerRadius={95}
+                  paddingAngle={2}
+                  dataKey="amount"
+                >
+                  {categoryData.map((_, i) => (
+                    <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} strokeWidth={0} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v) => formatCurrency(v)} />
+              </PieChart>
+            </ResponsiveContainer>
+            {/* Legend chips */}
+            <div className="flex flex-wrap gap-2 justify-center">
+              {categoryData.map((c, i) => (
+                <span key={c.category} className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 rounded-full px-2.5 py-1">
+                  <span className="w-2 h-2 rounded-full" style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
+                  {c.category}
+                </span>
+              ))}
+            </div>
+          </>
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={data.monthlyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-              <defs>
-                <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis
-                dataKey="month"
-                tickFormatter={formatMonth}
-                tick={{ fontSize: 11, fill: '#94a3b8' }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
-                tick={{ fontSize: 11, fill: '#94a3b8' }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend
-                wrapperStyle={{ fontSize: '12px', paddingTop: '16px' }}
-                formatter={(value) => <span className="capitalize text-ink-secondary">{value}</span>}
-              />
-              <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2} fill="url(#incomeGrad)" dot={{ fill: '#10b981', r: 3 }} activeDot={{ r: 5 }} />
-              <Area type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2} fill="url(#expenseGrad)" dot={{ fill: '#ef4444', r: 3 }} activeDot={{ r: 5 }} />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div className="text-center py-8 text-gray-400 text-sm">No data yet</div>
         )}
       </motion.div>
+
+      {/* Bar Chart */}
+      <motion.div {...stagger(3)} className="bg-white rounded-3xl p-5 mb-5 shadow-sm border border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-xs text-gray-400">Total {tab === 'expense' ? 'Expenses' : 'Income'}</p>
+            <p className="text-xl font-bold text-gray-900 tabular-nums">{formatCurrency(displayTotal)}</p>
+          </div>
+          <select
+            value={period}
+            onChange={e => setPeriod(e.target.value)}
+            className="text-xs font-medium text-gray-500 bg-gray-100 rounded-xl px-3 py-2 border-0 focus:outline-none cursor-pointer"
+          >
+            <option value="week">Week</option>
+            <option value="month">Month</option>
+          </select>
+        </div>
+        {barData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={barData} barGap={6}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis hide />
+              <Tooltip formatter={(v) => formatCurrency(v)} />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                {barData.map((_, i) => (
+                  <Cell key={i} fill={i === barData.length - 1 ? '#7c3aed' : '#c4b5fd'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="text-center py-6 text-gray-400 text-sm">Not enough data for chart</div>
+        )}
+
+        {/* Insight chip */}
+        {barData.length >= 2 && (() => {
+          const last = barData[barData.length - 1]?.value || 0
+          const prev = barData[barData.length - 2]?.value || 0
+          const diff = last - prev
+          return (
+            <div className="mt-3 flex items-center gap-2 bg-amber-50 rounded-xl p-3 flex-wrap">
+              <span className="text-xs text-gray-600">This week {tab}</span>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-lg text-white ${diff <= 0 ? 'bg-green-500' : 'bg-red-400'}`}>
+                {diff <= 0 ? `▼ ${formatCurrency(Math.abs(diff))}` : `▲ ${formatCurrency(diff)}`}
+              </span>
+              <span className="text-xs text-gray-400">than last period</span>
+            </div>
+          )
+        })()}
+      </motion.div>
+
+      {/* Category Budget Cards */}
+      {categoryData.length > 0 && (
+        <motion.div {...stagger(4)}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-gray-800">Categories</h2>
+            <button className="text-xs font-semibold text-white bg-[#2d1b69] px-3 py-1.5 rounded-xl">+ Add More</button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {categoryData.slice(0, 6).map((c, i) => (
+              <motion.div key={c.category} {...stagger(5 + i)}>
+                <CategoryBudgetCard
+                  name={c.category}
+                  amount={c.amount}
+                  total={totalExpenses}
+                  color={DONUT_COLORS[i % DONUT_COLORS.length]}
+                  emoji={getCategoryEmoji(c.category)}
+                />
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </div>
   )
+
+  function getCategoryEmoji(cat) {
+    const map = {
+      'Food & Dining': '🍔', 'Transportation': '🚗', 'Housing & Rent': '🏠',
+      'Healthcare': '💊', 'Entertainment': '🎬', 'Shopping': '🛍️',
+      'Education': '📚', 'Travel': '✈️', 'Utilities': '⚡',
+      'Savings': '💰', 'Salary': '💼', 'Freelance': '💻',
+      'Investment': '📈', 'Other': '📦',
+    }
+    return map[cat] || '💳'
+  }
 }
