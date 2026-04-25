@@ -1,12 +1,14 @@
 import axios from 'axios'
 
-// Vite proxies /auth, /transactions, /analytics, /export → http://localhost:5000
+// On Vercel: VITE_API_URL should point to your deployed backend (e.g. Railway/Render)
+// On local dev: Vite proxy handles /auth, /transactions, etc → localhost:5000
+const BASE_URL = import.meta.env.VITE_API_URL || ''
+
 const api = axios.create({
-  baseURL: '',
+  baseURL: BASE_URL,
   timeout: 15000,
 })
 
-// Request interceptor - attach JWT
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
@@ -18,14 +20,10 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor - handle 401
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // FIX: Skip the redirect for /auth/me — it's the initial session check in AuthContext.
-      // Without this guard, a 401 from /auth/me triggers window.location.href which causes a
-      // full page reload before React can handle it gracefully → white screen / reload loop.
       const isAuthCheck = error.config?.url?.includes('/auth/me')
       if (!isAuthCheck) {
         localStorage.removeItem('token')
