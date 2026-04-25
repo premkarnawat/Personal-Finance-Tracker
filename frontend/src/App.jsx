@@ -1,12 +1,18 @@
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 import Layout from './components/Layout'
+import SplashScreen from './components/SplashScreen'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 import DashboardPage from './pages/DashboardPage'
 import TransactionsPage from './pages/TransactionsPage'
 import AnalyticsPage from './pages/AnalyticsPage'
+import GoalsPage from './pages/GoalsPage'
+import LoansPage from './pages/LoansPage'
+import ProfilePage from './pages/ProfilePage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -33,51 +39,83 @@ function PublicRoute({ children }) {
   return children
 }
 
+function AppContent() {
+  const [showSplash, setShowSplash] = useState(true)
+
+  useEffect(() => {
+    // Show splash screen only on first visit per session
+    const hasSeenSplash = sessionStorage.getItem('fintra_splash_seen')
+    if (hasSeenSplash) {
+      setShowSplash(false)
+    }
+  }, [])
+
+  const handleSplashFinish = () => {
+    sessionStorage.setItem('fintra_splash_seen', 'true')
+    setShowSplash(false)
+  }
+
+  if (showSplash) {
+    return <SplashScreen onFinish={handleSplashFinish} />
+  }
+
+  return (
+    <>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3500,
+          style: {
+            background: '#0f172a',
+            color: '#f8fafc',
+            borderRadius: '12px',
+            fontSize: '14px',
+            fontFamily: 'Sora, sans-serif',
+            padding: '12px 16px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+          },
+          success: { iconTheme: { primary: '#10b981', secondary: '#f8fafc' } },
+          error: { iconTheme: { primary: '#ef4444', secondary: '#f8fafc' } },
+        }}
+      />
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+
+        {/* Protected routes — Layout wraps all inner pages */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="transactions" element={<TransactionsPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="goals" element={<GoalsPage />} />
+          <Route path="loans" element={<LoansPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+        </Route>
+
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </>
+  )
+}
+
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 3500,
-            style: {
-              background: '#0f172a',
-              color: '#f8fafc',
-              borderRadius: '12px',
-              fontSize: '14px',
-              fontFamily: 'Sora, sans-serif',
-              padding: '12px 16px',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
-            },
-            success: { iconTheme: { primary: '#10b981', secondary: '#f8fafc' } },
-            error: { iconTheme: { primary: '#ef4444', secondary: '#f8fafc' } },
-          }}
-        />
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-          <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
-
-          {/* Protected routes — Layout wraps all inner pages */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="transactions" element={<TransactionsPage />} />
-            <Route path="analytics" element={<AnalyticsPage />} />
-          </Route>
-
-          {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
