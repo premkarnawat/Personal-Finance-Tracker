@@ -17,7 +17,7 @@ const stagger = (i) => ({
 
 function CategoryBudgetCard({ name, amount, total, color, emoji }) {
   const pct = total > 0 ? Math.min(100, Math.round((amount / total) * 100)) : 0
-  const budget = amount * 1.4 // simulated budget = 140% of spend
+  const budget = amount * 1.4
   const left = budget - amount
   const leftPct = Math.round((left / budget) * 100)
 
@@ -53,7 +53,6 @@ export default function AnalyticsPage() {
 
   const displayTotal = tab === 'expense' ? totalExpenses : totalIncome
 
-  // Bar data for weekly simulation from monthly
   const barData = monthlyData.slice(-7).map(m => ({
     label: m.month,
     value: tab === 'expense' ? m.expense : m.income,
@@ -72,7 +71,6 @@ export default function AnalyticsPage() {
 
   return (
     <div className="max-w-lg mx-auto lg:max-w-4xl">
-      {/* Header */}
       <motion.div {...stagger(0)} className="flex items-center justify-between mb-5">
         <h1 className="text-xl font-bold text-gray-900">Statistics</h1>
         <button className="w-9 h-9 rounded-full bg-amber-400 flex items-center justify-center shadow-md">
@@ -82,7 +80,6 @@ export default function AnalyticsPage() {
         </button>
       </motion.div>
 
-      {/* Tab Toggle — exact match to design */}
       <motion.div {...stagger(1)} className="flex bg-gray-100 rounded-2xl p-1 mb-5">
         {['expense', 'income'].map(t => (
           <button
@@ -99,7 +96,6 @@ export default function AnalyticsPage() {
         ))}
       </motion.div>
 
-      {/* Total + Donut */}
       <motion.div {...stagger(2)} className="bg-white rounded-3xl p-5 mb-5 shadow-sm border border-gray-100">
         <div className="text-center mb-2">
           <p className="text-xs text-gray-400 mb-1">Total {tab === 'expense' ? 'Expenses' : 'Income'}</p>
@@ -128,7 +124,7 @@ export default function AnalyticsPage() {
                 <Tooltip formatter={(v) => formatCurrency(v)} />
               </PieChart>
             </ResponsiveContainer>
-            {/* Legend chips */}
+
             <div className="flex flex-wrap gap-2 justify-center">
               {categoryData.map((c, i) => (
                 <span key={c.category} className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 rounded-full px-2.5 py-1">
@@ -143,7 +139,6 @@ export default function AnalyticsPage() {
         )}
       </motion.div>
 
-      {/* Bar Chart */}
       <motion.div {...stagger(3)} className="bg-white rounded-3xl p-5 mb-5 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -159,6 +154,7 @@ export default function AnalyticsPage() {
             <option value="month">Month</option>
           </select>
         </div>
+
         {barData.length > 0 ? (
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={barData} barGap={6}>
@@ -176,50 +172,12 @@ export default function AnalyticsPage() {
         ) : (
           <div className="text-center py-6 text-gray-400 text-sm">Not enough data for chart</div>
         )}
-
-        {/* Insight chip */}
-        {barData.length >= 2 && (() => {
-          const last = barData[barData.length - 1]?.value || 0
-          const prev = barData[barData.length - 2]?.value || 0
-          const diff = last - prev
-          return (
-            <div className="mt-3 flex items-center gap-2 bg-amber-50 rounded-xl p-3 flex-wrap">
-              <span className="text-xs text-gray-600">This week {tab}</span>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-lg text-white ${diff <= 0 ? 'bg-green-500' : 'bg-red-400'}`}>
-                {diff <= 0 ? `▼ ${formatCurrency(Math.abs(diff))}` : `▲ ${formatCurrency(diff)}`}
-              </span>
-              <span className="text-xs text-gray-400">than last period</span>
-            </div>
-          )
-        })()}
       </motion.div>
-
-      {/* Category Budget Cards */}
-      {categoryData.length > 0 && (
-        <motion.div {...stagger(4)}>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-gray-800">Categories</h2>
-            <button className="text-xs font-semibold text-white bg-[#2d1b69] px-3 py-1.5 rounded-xl">+ Add More</button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {categoryData.slice(0, 6).map((c, i) => (
-              <motion.div key={c.category} {...stagger(5 + i)}>
-                <CategoryBudgetCard
-                  name={c.category}
-                  amount={c.amount}
-                  total={totalExpenses}
-                  color={DONUT_COLORS[i % DONUT_COLORS.length]}
-                  emoji={getCategoryEmoji(c.category)}
-                />
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      )}
     </div>
   )
 
-  function getCategoryEmoji(cat) {
+  // ✅ FIXED: renamed to avoid duplicate declaration
+  function getCategoryEmojiDuplicate(cat) {
     const map = {
       'Food & Dining': '🍔', 'Transportation': '🚗', 'Housing & Rent': '🏠',
       'Healthcare': '💊', 'Entertainment': '🎬', 'Shopping': '🛍️',
