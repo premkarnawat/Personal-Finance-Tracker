@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
@@ -37,6 +37,8 @@ const navItems = [
 export default function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  // FIX: was using bare `location.pathname` without importing useLocation → ReferenceError crash
+  const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const handleLogout = () => {
@@ -51,7 +53,6 @@ export default function Layout() {
     <div className="min-h-screen flex bg-surface-1">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-surface-3 fixed inset-y-0 left-0 z-30">
-        {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-6 border-b border-surface-3">
           <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -61,16 +62,13 @@ export default function Layout() {
           <span className="text-lg font-bold text-ink-primary tracking-tight">Finia</span>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 px-3 py-6 space-y-1">
           <p className="section-label px-3 mb-3">Menu</p>
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              className={({ isActive }) =>
-                `nav-link ${isActive ? 'active' : ''}`
-              }
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
               {item.icon}
               {item.label}
@@ -78,7 +76,6 @@ export default function Layout() {
           ))}
         </nav>
 
-        {/* User */}
         <div className="p-4 border-t border-surface-3">
           <div className="flex items-center gap-3 px-3 py-2 rounded-xl">
             <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 font-bold text-sm flex items-center justify-center flex-shrink-0">
