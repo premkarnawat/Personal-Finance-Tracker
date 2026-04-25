@@ -17,7 +17,7 @@ import ProfilePage from './pages/ProfilePage'
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-1">
+    <div className="min-h-screen flex items-center justify-center bg-surface-1 dark:bg-gray-950">
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
         <p className="text-sm text-ink-tertiary font-medium">Loading…</p>
@@ -31,7 +31,7 @@ function ProtectedRoute({ children }) {
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-1">
+    <div className="min-h-screen flex items-center justify-center bg-surface-1 dark:bg-gray-950">
       <div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
     </div>
   )
@@ -40,18 +40,13 @@ function PublicRoute({ children }) {
 }
 
 function AppContent() {
-  const [showSplash, setShowSplash] = useState(true)
-
-  useEffect(() => {
-    // Show splash screen only on first visit per session
-    const hasSeenSplash = sessionStorage.getItem('fintra_splash_seen')
-    if (hasSeenSplash) {
-      setShowSplash(false)
-    }
-  }, [])
+  const [showSplash, setShowSplash] = useState(() => {
+    // Show splash only once per session
+    return !sessionStorage.getItem('fintra_splash_seen')
+  })
 
   const handleSplashFinish = () => {
-    sessionStorage.setItem('fintra_splash_seen', 'true')
+    sessionStorage.setItem('fintra_splash_seen', '1')
     setShowSplash(false)
   }
 
@@ -75,15 +70,15 @@ function AppContent() {
             boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
           },
           success: { iconTheme: { primary: '#10b981', secondary: '#f8fafc' } },
-          error: { iconTheme: { primary: '#ef4444', secondary: '#f8fafc' } },
+          error:   { iconTheme: { primary: '#ef4444', secondary: '#f8fafc' } },
         }}
       />
       <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        {/* Public */}
+        <Route path="/login"  element={<PublicRoute><LoginPage  /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
 
-        {/* Protected routes — Layout wraps all inner pages */}
+        {/* Protected — all wrapped by Layout */}
         <Route
           path="/"
           element={
@@ -93,12 +88,12 @@ function AppContent() {
           }
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="dashboard"    element={<DashboardPage    />} />
           <Route path="transactions" element={<TransactionsPage />} />
-          <Route path="analytics" element={<AnalyticsPage />} />
-          <Route path="goals" element={<GoalsPage />} />
-          <Route path="loans" element={<LoansPage />} />
-          <Route path="profile" element={<ProfilePage />} />
+          <Route path="analytics"    element={<AnalyticsPage    />} />
+          <Route path="goals"        element={<GoalsPage        />} />
+          <Route path="loans"        element={<LoansPage        />} />
+          <Route path="profile"      element={<ProfilePage      />} />
         </Route>
 
         {/* Catch-all */}
