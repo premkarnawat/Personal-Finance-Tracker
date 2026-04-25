@@ -4,9 +4,7 @@ const ThemeContext = createContext(null)
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('fintra-theme')
-    if (saved) return saved
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    return localStorage.getItem('fintra_theme') || 'light'
   })
 
   useEffect(() => {
@@ -16,25 +14,13 @@ export function ThemeProvider({ children }) {
     } else {
       root.classList.remove('dark')
     }
-    localStorage.setItem('fintra-theme', theme)
+    localStorage.setItem('fintra_theme', theme)
   }, [theme])
 
-  // Listen to OS preference changes (only if user hasn't manually set)
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e) => {
-      if (!localStorage.getItem('fintra-theme')) {
-        setTheme(e.matches ? 'dark' : 'light')
-      }
-    }
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
-
-  const toggle = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light')
 
   return (
-    <ThemeContext.Provider value={{ theme, toggle, isDark: theme === 'dark' }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === 'dark' }}>
       {children}
     </ThemeContext.Provider>
   )
