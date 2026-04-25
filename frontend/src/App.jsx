@@ -24,15 +24,11 @@ function ProtectedRoute({ children }) {
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
-
-  // FIX: Previously returned null while loading → white screen during /auth/me check.
-  // Now shows a spinner so the page is never blank on initial load.
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-surface-1">
       <div className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
     </div>
   )
-
   if (user) return <Navigate to="/dashboard" replace />
   return children
 }
@@ -54,23 +50,31 @@ export default function App() {
               padding: '12px 16px',
               boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
             },
-            success: {
-              iconTheme: { primary: '#10b981', secondary: '#f8fafc' },
-            },
-            error: {
-              iconTheme: { primary: '#ef4444', secondary: '#f8fafc' },
-            },
+            success: { iconTheme: { primary: '#10b981', secondary: '#f8fafc' } },
+            error: { iconTheme: { primary: '#ef4444', secondary: '#f8fafc' } },
           }}
         />
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* Public routes */}
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
-          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+
+          {/* Protected routes — Layout wraps all inner pages */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
           </Route>
+
+          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
