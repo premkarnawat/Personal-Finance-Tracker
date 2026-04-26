@@ -41,6 +41,17 @@ function CategoryBudgetCard({ name, amount, total, color, emoji }) {
   )
 }
 
+function getCategoryEmoji(cat) {
+  const map = {
+    'Food & Dining': '🍔', 'Transportation': '🚗', 'Housing & Rent': '🏠',
+    'Healthcare': '💊', 'Entertainment': '🎬', 'Shopping': '🛍️',
+    'Education': '📚', 'Travel': '✈️', 'Utilities': '⚡',
+    'Savings': '💰', 'Salary': '💼', 'Freelance': '💻',
+    'Investment': '📈', 'Other': '📦',
+  }
+  return map[cat] || '💳'
+}
+
 export default function AnalyticsPage() {
   const [tab, setTab] = useState('expense')
   const [period, setPeriod] = useState('week')
@@ -53,22 +64,10 @@ export default function AnalyticsPage() {
 
   const displayTotal = tab === 'expense' ? totalExpenses : totalIncome
 
-  // Bar data for weekly simulation from monthly
   const barData = monthlyData.slice(-7).map(m => ({
     label: m.month,
     value: tab === 'expense' ? m.expense : m.income,
   }))
-
-  const getCategoryEmoji = (cat) => {
-    const map = {
-      'Food & Dining': '🍔', 'Transportation': '🚗', 'Housing & Rent': '🏠',
-      'Healthcare': '💊', 'Entertainment': '🎬', 'Shopping': '🛍️',
-      'Education': '📚', 'Travel': '✈️', 'Utilities': '⚡',
-      'Savings': '💰', 'Salary': '💼', 'Freelance': '💻',
-      'Investment': '📈', 'Other': '📦',
-    }
-    return map[cat] || '💳'
-  }
 
   return (
     <div className="max-w-lg mx-auto lg:max-w-4xl">
@@ -219,14 +218,4 @@ export default function AnalyticsPage() {
     </div>
   )
 
-  function getCategoryEmoji(cat) {
-    const map = {
-      'Food & Dining': '🍔', 'Transportation': '🚗', 'Housing & Rent': '🏠',
-      'Healthcare': '💊', 'Entertainment': '🎬', 'Shopping': '🛍️',
-      'Education': '📚', 'Travel': '✈️', 'Utilities': '⚡',
-      'Savings': '💰', 'Salary': '💼', 'Freelance': '💻',
-      'Investment': '📈', 'Other': '📦',
-    }
-    return map[cat] || '💳'
-  }
 }
