@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,187 +7,83 @@
 @layer base {
   * { box-sizing: border-box; }
 
-  :root {
-    --bg-primary: #f8fafc;
-    --bg-card: #ffffff;
-    --bg-card2: #f1f5f9;
-    --border: #e2e8f0;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-tertiary: #94a3b8;
-    --balance-card: linear-gradient(135deg, #1a1040 0%, #2d1b69 60%, #1a1040 100%);
-  }
-
-  .dark {
-    --bg-primary: #0f1117;
-    --bg-card: #161b27;
-    --bg-card2: #1e2535;
-    --border: #2e384f;
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-tertiary: #475569;
-    --balance-card: linear-gradient(135deg, #1a1040 0%, #2d1b69 60%, #1a1040 100%);
-  }
-
   body {
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
     font-family: 'Sora', system-ui, sans-serif;
-    min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    background-color: #f8f7ff;
+    color: #1a1a2e;
   }
 
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
+  /* Dark mode */
+  .dark body { background-color: #0d0d1a; color: #f1f5f9; }
 }
 
 @layer components {
+  /* ── Cards ── */
   .card {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 1.25rem;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    @apply bg-white rounded-3xl p-5 border border-gray-100 shadow-sm;
   }
   .dark .card {
-    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    @apply bg-gray-900 border-gray-800;
   }
 
-  .card2 {
-    background-color: var(--bg-card2);
-    border: 1px solid var(--border);
-    border-radius: 1.25rem;
-    padding: 1.25rem;
-  }
-
-  .btn-primary {
-    @apply bg-brand-600 hover:bg-brand-700 text-white font-semibold px-5 py-2.5 rounded-xl
-           transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
-           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1;
-  }
-
-  .btn-secondary {
-    background-color: var(--bg-card2);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    @apply font-medium px-5 py-2.5 rounded-xl transition-all duration-200 active:scale-95
-           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1;
-  }
-  .btn-secondary:hover { filter: brightness(0.97); }
-
-  .btn-gold {
-    background: linear-gradient(135deg, #d4a843, #f5c842);
-    @apply text-[#0f1117] font-bold px-5 py-2.5 rounded-xl transition-all duration-200
-           active:scale-95 disabled:opacity-50 shadow-md;
-  }
-
-  .btn-danger {
-    @apply bg-danger/10 hover:bg-danger/20 text-danger font-medium px-5 py-2.5 rounded-xl
-           transition-all duration-200 active:scale-95;
-  }
-
-  .input-field {
-    width: 100%;
-    background-color: var(--bg-card2);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    @apply rounded-xl px-4 py-3 text-sm placeholder-[color:var(--text-tertiary)]
-           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
-           transition-all duration-200;
-  }
-
-  .label {
-    color: var(--text-secondary);
-    @apply block text-xs font-semibold uppercase tracking-wide mb-1.5;
-  }
-
-  .stat-card {
-    @apply card cursor-default transition-all duration-300 hover:shadow-elevated;
-  }
-
-  .badge {
-    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold;
-  }
-  .badge-income { @apply badge bg-success/10 text-success; }
-  .badge-expense { @apply badge bg-danger/10 text-danger; }
-
-  .skeleton {
-    background-color: var(--bg-card2);
-    @apply rounded-xl animate-pulse;
-  }
-
+  /* ── Nav links (sidebar) ── */
   .nav-link {
-    color: var(--text-secondary);
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
-           transition-all duration-200;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+           text-gray-500 hover:bg-purple-50 hover:text-purple-700
+           transition-all duration-150 cursor-pointer;
   }
-  .nav-link:hover { background-color: var(--bg-card2); color: var(--text-primary); }
   .nav-link.active {
-    @apply bg-brand-600/10 text-brand-500;
+    @apply bg-purple-50 text-purple-700 font-semibold;
   }
-
-  .page-header {
-    color: var(--text-primary);
-    @apply text-2xl font-bold tracking-tight;
-  }
-
   .section-label {
-    color: var(--text-tertiary);
-    @apply text-xs font-semibold uppercase tracking-widest;
+    @apply text-[10px] font-bold uppercase tracking-widest text-gray-400;
   }
 
-  /* Balance card gradient */
-  .balance-card {
-    background: var(--balance-card);
-    @apply rounded-2xl p-6 text-white relative overflow-hidden;
+  /* ── Inputs ── */
+  .input-field {
+    @apply w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50
+           text-sm text-gray-800 placeholder-gray-400
+           focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent
+           transition-all duration-150;
   }
-  .balance-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 70% 50%, rgba(139, 92, 246, 0.3) 0%, transparent 60%);
-  }
-
-  /* Income / Expense mini cards */
-  .stat-mini-income {
-    @apply rounded-2xl p-4;
-    background: linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.06) 100%);
-    border: 1px solid rgba(16,185,129,0.2);
-  }
-  .stat-mini-expense {
-    @apply rounded-2xl p-4;
-    background: linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(239,68,68,0.06) 100%);
-    border: 1px solid rgba(239,68,68,0.2);
+  .dark .input-field {
+    @apply bg-gray-800 border-gray-700 text-white placeholder-gray-500;
   }
 
-  /* Bottom nav */
-  .bottom-nav {
-    background-color: var(--bg-card);
-    border-top: 1px solid var(--border);
-    @apply fixed bottom-0 inset-x-0 z-40 flex items-end justify-around px-2 pb-safe;
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-3 rounded-2xl text-sm font-semibold text-white
+           bg-[#2d1b69] hover:bg-[#3d2580]
+           transition-all duration-150 active:scale-95 shadow-sm;
   }
-  .bottom-nav-item {
-    color: var(--text-tertiary);
-    @apply flex flex-col items-center gap-0.5 py-3 px-3 rounded-xl transition-all duration-200 min-w-0;
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-3 rounded-2xl text-sm font-semibold
+           text-purple-700 bg-purple-50 hover:bg-purple-100
+           transition-all duration-150 active:scale-95;
   }
-  .bottom-nav-item.active { @apply text-brand-500; }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-3 rounded-2xl text-sm font-semibold
+           text-red-600 bg-red-50 hover:bg-red-100
+           transition-all duration-150 active:scale-95;
+  }
 
-  /* Progress bar */
-  .progress-bar {
-    @apply h-2 rounded-full overflow-hidden;
-    background-color: var(--bg-card2);
+  /* ── Page header ── */
+  .page-header {
+    @apply text-xl font-bold text-gray-900;
   }
-  .progress-fill {
-    @apply h-full rounded-full transition-all duration-700;
+  .dark .page-header { @apply text-white; }
+
+  /* ── Badge ── */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold;
   }
 }
 
 @layer utilities {
-  .text-balance { text-wrap: balance; }
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum";
-  }
-  .pb-safe { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
 }
