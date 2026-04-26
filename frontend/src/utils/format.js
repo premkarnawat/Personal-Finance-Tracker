@@ -1,62 +1,45 @@
-export const CATEGORIES = [
-  'Food & Dining',
-  'Transportation',
-  'Housing & Rent',
-  'Healthcare',
-  'Entertainment',
-  'Shopping',
-  'Education',
-  'Travel',
-  'Utilities',
-  'Savings',
-  'Salary',
-  'Freelance',
-  'Investment',
-  'Other',
-]
-
-export const CATEGORY_COLORS = {
-  'Food & Dining': '#f97316',
-  'Transportation': '#3b82f6',
-  'Housing & Rent': '#8b5cf6',
-  'Healthcare': '#ef4444',
-  'Entertainment': '#ec4899',
-  'Shopping': '#f59e0b',
-  'Education': '#06b6d4',
-  'Travel': '#10b981',
-  'Utilities': '#64748b',
-  'Savings': '#0ea5e9',
-  'Salary': '#22c55e',
-  'Freelance': '#a855f7',
-  'Investment': '#14b8a6',
-  'Other': '#94a3b8',
-}
-
-export function formatCurrency(amount) {
+export function formatCurrency(amount = 0, currency = 'INR') {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    currency,
+    maximumFractionDigits: 0,
   }).format(amount)
 }
 
-export function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
+export function formatDate(date) {
+  const d = new Date(date)
+  const now = new Date()
+  const diff = now - d
+  const mins = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  if (hours < 24) return `Today, ${d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+  if (hours < 48) return 'Yesterday'
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
-export function formatMonth(monthStr) {
+export function formatMonth(monthStr = '') {
+  if (!monthStr) return ''
   const [year, month] = monthStr.split('-')
-  return new Date(year, month - 1).toLocaleDateString('en-IN', {
-    month: 'short',
-    year: 'numeric',
-  })
+  return new Date(parseInt(year), parseInt(month) - 1).toLocaleString('en-IN', { month: 'short' })
 }
 
-export function formatPercent(value) {
-  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
+export const CATEGORY_COLORS = {
+  'Food & Dining':    '#f97316',
+  'Transportation':   '#06b6d4',
+  'Housing & Rent':   '#7c3aed',
+  'Healthcare':       '#10b981',
+  'Entertainment':    '#ec4899',
+  'Shopping':         '#f59e0b',
+  'Education':        '#3b82f6',
+  'Travel':           '#8b5cf6',
+  'Utilities':        '#14b8a6',
+  'Savings':          '#22c55e',
+  'Salary':           '#6366f1',
+  'Freelance':        '#a855f7',
+  'Investment':       '#0ea5e9',
+  'Other':            '#94a3b8',
 }
+
+export const CATEGORIES = Object.keys(CATEGORY_COLORS)
